@@ -720,6 +720,7 @@ func (j *Module) collectBuilderFlags(ctx android.ModuleContext, deps deps) javaB
 	// classpath
 	flags.bootClasspath = append(flags.bootClasspath, deps.bootClasspath...)
 	flags.classpath = append(flags.classpath, deps.classpath...)
+	flags.dexClasspath = append(flags.dexClasspath, deps.dexClasspath...)
 	flags.java9Classpath = append(flags.java9Classpath, deps.java9Classpath...)
 	flags.processorPath = append(flags.processorPath, deps.processorPath...)
 	flags.errorProneProcessorPath = append(flags.errorProneProcessorPath, deps.errorProneProcessorPath...)
@@ -916,6 +917,8 @@ func (j *Module) compile(ctx android.ModuleContext, aaptSrcJar android.Path) {
 		flags.classpath = append(flags.classpath, deps.kotlinStdlib...)
 		flags.classpath = append(flags.classpath, deps.kotlinAnnotations...)
 
+		flags.dexClasspath = append(flags.dexClasspath, deps.kotlinAnnotations...)
+
 		flags.kotlincClasspath = append(flags.kotlincClasspath, flags.bootClasspath...)
 		flags.kotlincClasspath = append(flags.kotlincClasspath, flags.classpath...)
 
@@ -944,6 +947,8 @@ func (j *Module) compile(ctx android.ModuleContext, aaptSrcJar android.Path) {
 		// Jar kotlin classes into the final jar after javac
 		if BoolDefault(j.properties.Static_kotlin_stdlib, true) {
 			kotlinJars = append(kotlinJars, deps.kotlinStdlib...)
+		} else {
+			flags.dexClasspath = append(flags.dexClasspath, deps.kotlinStdlib...)
 		}
 	}
 
@@ -1629,6 +1634,7 @@ func (j *Module) collectDeps(ctx android.ModuleContext) deps {
 		} else if sdkDep.useFiles {
 			// sdkDep.jar is actually equivalent to turbine header.jar.
 			deps.classpath = append(deps.classpath, sdkDep.jars...)
+			deps.dexClasspath = append(deps.dexClasspath, sdkDep.jars...)
 			deps.aidlPreprocess = sdkDep.aidl
 		} else {
 			deps.aidlPreprocess = sdkDep.aidl
@@ -1653,7 +1659,9 @@ func (j *Module) collectDeps(ctx android.ModuleContext) deps {
 		if dep, ok := module.(SdkLibraryDependency); ok {
 			switch tag {
 			case libTag:
-				deps.classpath = append(deps.classpath, dep.SdkHeaderJars(ctx, j.SdkVersion(ctx))...)
+				depHeaderJars := dep.SdkHeaderJars(ctx, j.SdkVersion(ctx))
+				deps.classpath = append(deps.classpath, depHeaderJars...)
+				deps.dexClasspath = append(deps.dexClasspath, depHeaderJars...)
 			case staticLibTag:
 				ctx.ModuleErrorf("dependency on java_sdk_library %q can only be in libs", otherName)
 			}
@@ -1672,6 +1680,7 @@ func (j *Module) collectDeps(ctx android.ModuleContext) deps {
 				deps.bootClasspath = append(deps.bootClasspath, dep.HeaderJars...)
 			case libTag, instrumentationForTag:
 				deps.classpath = append(deps.classpath, dep.HeaderJars...)
+				deps.dexClasspath = append(deps.dexClasspath, dep.HeaderJars...)
 				deps.aidlIncludeDirs = append(deps.aidlIncludeDirs, dep.AidlIncludeDirs...)
 				addPlugins(&deps, dep.ExportedPlugins, dep.ExportedPluginClasses...)
 				deps.disableTurbine = deps.disableTurbine || dep.ExportedPluginDisableTurbine
@@ -1737,6 +1746,7 @@ func (j *Module) collectDeps(ctx android.ModuleContext) deps {
 			case libTag:
 				checkProducesJars(ctx, dep)
 				deps.classpath = append(deps.classpath, dep.Srcs()...)
+				deps.dexClasspath = append(deps.classpath, dep.Srcs()...)
 			case staticLibTag:
 				checkProducesJars(ctx, dep)
 				deps.classpath = append(deps.classpath, dep.Srcs()...)
