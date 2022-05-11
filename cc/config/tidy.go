@@ -39,12 +39,17 @@ func init() {
 			"misc-*",
 			"performance-*",
 			"portability-*",
+			"-bugprone-easily-swappable-parameters",
 			"-bugprone-narrowing-conversions",
+			"-bugprone-unchecked-optional-access",
+			"-clang-diagnostic-unqualified-std-cast-call",
 			"-google-readability*",
 			"-google-runtime-references",
 			"-misc-no-recursion",
 			"-misc-non-private-member-variables-in-classes",
 			"-misc-unused-parameters",
+			"-misc-unused-using-decls",
+			"-performance-no-int-to-ptr",
 			// the following groups are excluded by -*
 			// -altera-*
 			// -cppcoreguidelines-*
